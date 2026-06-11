@@ -1,11 +1,12 @@
+using UnityEngine;
 using System;
 using System.Collections;
-using UnityEngine;
 
 public class WaveManager : MonoBehaviour
 {
     public GameObject enemyPrefab;
     public Transform enemySpawnPoint;
+    public GameObject enemyWaypointParent;
     public int baseEnemyCount = 3;
     public int waveNumber = 0;
     public float timeBetweenWaves = 30f;
@@ -21,37 +22,40 @@ public class WaveManager : MonoBehaviour
 
     private IEnumerator SpawnLoop()
     {
-        while (!GameManager.Instance.gameIsOver)
+        while (true)
         {
-            // Count down to next wave, one tick per second
-            while (timeUntilNextWave > 0f)
+            while (timeUntilNextWave > 0)
             {
-                yield return new WaitForSeconds(1f);
-                timeUntilNextWave -= 1f;
-
-                if (GameManager.Instance.gameIsOver)
-                    yield break;
+                timeUntilNextWave -= Time.deltaTime;
+                yield return null;
             }
 
-            // Advance wave
+            if (GameManager.Instance.gameIsOver)
+                yield break;
+
             waveNumber++;
             timeUntilNextWave = timeBetweenWaves;
-
             OnWaveStarted?.Invoke(waveNumber);
 
-            int spawnCount = baseEnemyCount + waveNumber * 2;
-            float spawnY = enemySpawnPoint.position.y;
-
-            for (int i = 0; i < spawnCount; i++)
+            int enemiesToSpawn = baseEnemyCount + (waveNumber * 2);
+            for (int i = 0; i < enemiesToSpawn; i++)
             {
                 Vector3 offset = UnityEngine.Random.insideUnitSphere * 3f;
-                Vector3 spawnPos = new Vector3(
-                    enemySpawnPoint.position.x + offset.x,
-                    spawnY,
-                    enemySpawnPoint.position.z + offset.z
-                );
+                offset.y = 0;
+                Vector3 spawnPos = enemySpawnPoint.position + offset;
 
-                Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+                GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+                EnemyAI ai = enemy.GetComponent<EnemyAI>();
+                if (ai != null && enemyWaypointParent != null)
+                {
+                    int childCount = enemyWaypointParent.transform.childCount;
+                    GameObject[] waypoints = new GameObject[childCount];
+                    for (int j = 0; j < childCount; j++)
+                        waypoints[j] = enemyWaypointParent.transform.GetChild(j).gameObject;
+                    ai.SetWaypoints(waypoints);
+                }
+
+                yield return new WaitForSeconds(0.3f);
             }
         }
     }

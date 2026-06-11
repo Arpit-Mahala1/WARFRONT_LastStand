@@ -11,7 +11,7 @@ public class EnemyAI : MonoBehaviour
     public float attackRange = 2f;
     public float attackDamage = 8f;
     public float attackCooldown = 1.2f;
-    public Transform[] patrolWaypoints;
+    public GameObject[] patrolWaypoints;
     public LayerMask playerLayer;
 
     private int waypointIndex = 0;
@@ -29,27 +29,30 @@ public class EnemyAI : MonoBehaviour
         InvokeRepeating("UpdateState", 0f, 0.2f);
     }
 
+    public void SetWaypoints(GameObject[] waypoints)
+    {
+        patrolWaypoints = waypoints;
+    }
+
     private void UpdateState()
     {
         switch (currentState)
         {
             case State.Patrol: HandlePatrol(); break;
-            case State.Chase:  HandleChase();  break;
+            case State.Chase: HandleChase(); break;
             case State.Attack: HandleAttack(); break;
         }
     }
 
     private void HandlePatrol()
     {
-        if (patrolWaypoints.Length == 0)
+        if (patrolWaypoints == null || patrolWaypoints.Length == 0)
             return;
 
-        agent.SetDestination(patrolWaypoints[waypointIndex].position);
+        agent.SetDestination(patrolWaypoints[waypointIndex].transform.position);
 
         if (!agent.pathPending && agent.remainingDistance < 0.5f)
-        {
             waypointIndex = (waypointIndex + 1) % patrolWaypoints.Length;
-        }
 
         Collider[] hits = Physics.OverlapSphere(transform.position, detectionRange, playerLayer);
         if (hits.Length > 0)
@@ -71,11 +74,8 @@ public class EnemyAI : MonoBehaviour
         agent.SetDestination(target.position);
 
         float distance = Vector3.Distance(transform.position, target.position);
-
         if (distance <= attackRange)
-        {
             currentState = State.Attack;
-        }
         else if (distance > detectionRange * 1.5f)
         {
             target = null;
@@ -99,7 +99,6 @@ public class EnemyAI : MonoBehaviour
             UnitHealth unitHealth = target.GetComponent<UnitHealth>();
             if (unitHealth != null)
                 unitHealth.TakeDamage(attackDamage);
-
             lastAttackTime = Time.time;
         }
     }
