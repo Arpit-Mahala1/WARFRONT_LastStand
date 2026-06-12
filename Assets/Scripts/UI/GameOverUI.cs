@@ -8,7 +8,14 @@ public class GameOverUI : MonoBehaviour
 
     private void Start()
     {
-        resultText.text = GameManager.PlayerWon ? "You Win!" : "You Lose.";
+        if (GameManager.PlayerWon)
+        {
+            resultText.text = $"You Win!\n<size=50%>Time: {GameManager.CurrentTimeTaken:F1}s</size>";
+        }
+        else
+        {
+            resultText.text = $"You Lose.\n<size=50%>Waves Survived: {GameManager.CurrentWavesSurvived}</size>";
+        }
     }
 
     public void OnRetryButton()
